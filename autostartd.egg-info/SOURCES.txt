@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+autostartd/__init__.py
+autostartd/__main__.py
+autostartd/api.py
+autostartd/linux.py
+autostartd/main.py
+autostartd/windows.py
+autostartd.egg-info/PKG-INFO
+autostartd.egg-info/SOURCES.txt
+autostartd.egg-info/dependency_links.txt
+autostartd.egg-info/entry_points.txt
+autostartd.egg-info/requires.txt
+autostartd.egg-info/top_level.txt

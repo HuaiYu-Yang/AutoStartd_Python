@@ -1,0 +1,223 @@
+Metadata-Version: 2.4
+Name: autostartd
+Version: 0.1.2
+Summary: Cross-platform autostart manager for Windows Task Scheduler and Linux Supervisor
+Author: Dawalishi
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: requests
+Requires-Dist: pyre-tools
+
+# autostartd
+
+自动启动管理工具，支持 Windows 任务计划程序与 Linux Supervisor。提供统一的交互式菜单，帮助你快速配置脚本开机自启。
+
+## 适用场景
+
+- 需要让 Python 脚本或 Shell 脚本随系统启动自动运行。
+- 希望用统一工具管理 Windows/Linux 的自启动任务。
+- 需要简单的交互式配置，不想手动写 systemd 或任务计划。
+
+## 安装
+
+```bash
+pip install autostartd
+```
+
+## 运行
+
+```bash
+autostartd
+```
+
+## 功能说明
+
+- Windows：创建、更新、查询、删除开机自启动任务（基于 `schtasks`）。
+- Linux：创建、查询、删除 Supervisor 项目（首次运行自动安装 Supervisor）。
+- 支持中英文界面切换，语言配置保存到 `~/.autostartd/config.json`。
+- 任何输入处输入 `q` 可退出当前流程返回菜单。
+
+## 使用示例
+
+### 1) 新增自启动任务/项目
+
+- 选择菜单“新增”。
+- 输入任务名称（用于管理和查询）。
+- 输入脚本路径（支持 `~`）。
+- 若名称已存在，可选择覆盖或重命名。
+
+### 2) 查询任务/项目
+
+- 输入关键字即可模糊查询。
+- 留空则查询全部由本工具创建的任务/项目。
+
+### 3) 修改任务（Windows）
+
+- 选择“修改”，输入已有任务名称。
+- 按提示输入新的脚本路径。
+
+### 4) 删除任务/项目
+
+- 输入要删除的名称即可删除。
+
+## 运行原理
+
+### Windows
+
+- 使用 `schtasks` 创建“用户登录时运行”的任务。
+- 任务名称带统一前缀，便于过滤与管理。
+- 运行解释器为当前 `python` 路径。
+
+### Linux
+
+- 使用 Supervisor 管理进程，配置写入 `/etc/supervisor/conf.d/`。
+- 如果未检测到 Supervisor，会自动通过包管理器安装（Ubuntu/Debian: `apt`，CentOS/RHEL: `yum`/`dnf`）。
+- 会启用 `supervisor`/`supervisord` 服务并启动。
+
+## 配置文件
+
+- 路径：`~/.autostartd/config.json`
+- 当前用途：保存语言偏好（zh/en）
+
+## 常见问题
+
+**Q: 为什么 Linux 需要 sudo？**
+
+A: Supervisor 的配置在 `/etc/supervisor/conf.d/`，需要管理员权限写入。
+
+**Q: Windows 任务显示“上次运行时间: 1999/11/30”？**
+
+A: 这是任务从未运行过时的默认占位显示，属于正常现象。
+
+**Q: 支持哪些脚本类型？**
+
+A: Windows 使用 Python 启动脚本；Linux 支持 Python 与 Shell（`.py` / `.sh`）。
+
+## 注意事项
+
+- Linux 端依赖 `supervisorctl`。
+- Windows 端依赖 `schtasks`。
+- 若在 WSL 中运行，请使用 WSL 环境的 `autostartd`。
+
+## 依赖
+
+- Windows：系统自带 `schtasks`。
+- Linux：需要 `supervisorctl` 与 `systemctl`（如未安装 Supervisor，将自动通过包管理器安装）。
+- Python：3.8+。
+
+## API 调用
+
+你可以在代码中直接调用 API，不进入菜单：
+
+```python
+from autostartd import set_autostart, remove_autostart, list_autostart
+
+# 设置开机自启（自动识别系统）
+set_autostart("my_task", "~/Downloads/test_auto_start.py", overwrite=True, sudo_password="your_sudo_password")
+
+# 删除
+remove_autostart("my_task", sudo_password="your_sudo_password")
+
+# 查询（支持关键字）
+print(list_autostart("my", sudo_password="your_sudo_password"))
+```
+
+说明：
+- Windows 不需要 `sudo_password`。
+- Linux API 调用必须传 `sudo_password`，否则不会弹出输入提示。
+
+
+---
+
+# autostartd
+Cross-platform autostart manager for Windows Task Scheduler and Linux Supervisor. It provides a unified interactive menu to configure startup scripts quickly.
+
+## Use Cases
+
+- Run Python or shell scripts on system startup.
+- Manage Windows/Linux autostart with a single tool.
+- Prefer a simple interactive workflow over manual systemd/Task Scheduler setup.
+
+## Install
+
+```bash
+pip install autostartd
+```
+
+## Run
+
+```bash
+autostartd
+```
+
+## Features
+
+- Windows: create, update, list, and delete startup tasks via `schtasks`.
+- Linux: create, list, and delete Supervisor programs (auto-installs Supervisor on first run).
+- UI language switch; config stored at `~/.autostartd/config.json`.
+- Type `q` at any prompt to return to the menu.
+
+## Usage Examples
+
+### 1) Add a task/project
+
+- Choose “Add”.
+- Enter a task name for management and search.
+- Enter a script path (supports `~`).
+- If the name exists, choose overwrite or rename.
+
+### 2) Query tasks/projects
+
+- Input a keyword for fuzzy search.
+- Leave empty to list all items created by this tool.
+
+### 3) Update a task (Windows)
+
+- Choose “Update” and provide an existing task name.
+- Enter the new script path when prompted.
+
+### 4) Delete a task/project
+
+- Provide the name to delete it.
+
+## How It Works
+
+### Windows
+
+- Uses `schtasks` to create a “run at logon” task.
+- Task names include a unified prefix for filtering.
+- Python executable is the current `python` path.
+
+### Linux
+
+- Uses Supervisor with configs in `/etc/supervisor/conf.d/`.
+- If Supervisor is missing, it will be installed via the system package manager (Ubuntu/Debian: `apt`, CentOS/RHEL: `yum`/`dnf`).
+- Enables and starts `supervisor`/`supervisord` services.
+
+## Configuration
+
+- Path: `~/.autostartd/config.json`
+- Current usage: language preference (zh/en)
+
+## FAQ
+
+**Q: Why does Linux require sudo?**
+
+A: Supervisor configs live in `/etc/supervisor/conf.d/`, which needs admin privileges.
+
+**Q: Why does Windows show “last run time: 1999/11/30”?**
+
+A: It is a placeholder when the task has never run; this is normal.
+
+**Q: What script types are supported?**
+
+A: Windows runs Python scripts; Linux supports Python and shell scripts (`.py` / `.sh`).
+
+## Notes
+
+- Linux depends on `supervisorctl`.
+- Windows depends on `schtasks`.
+- When running inside WSL, use the WSL environment for `autostartd`.

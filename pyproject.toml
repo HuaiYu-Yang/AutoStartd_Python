@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autostartd"
+version = "0.1.2"
+description = "Cross-platform autostart manager for Windows Task Scheduler and Linux Supervisor"
+readme = "README.md"
+requires-python = ">=3.8"
+
+dependencies = [
+  "requests",
+  "pyre-tools"
+]
+authors = [
+  { name = "Dawalishi" }
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent"
+]
+
+[project.scripts]
+autostartd = "autostartd.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["autostartd*"]
