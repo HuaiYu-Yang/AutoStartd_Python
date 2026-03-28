@@ -235,11 +235,12 @@ def install_and_run_pyre():
     if script_path is None:
         return
     print_info(tr("安装 pyre_tools...", "Installing pyre_tools..."), use_color=True)
-    run("python3 -m pip install --upgrade pyre_tools", capture=False)
+    python_cmd = get_python_executable()
+    subprocess.run([python_cmd, "-m", "pip", "install", "--upgrade", "pyre-tools"], check=False)
 
     print_info(tr(f"开始分析文件: {script_path}", f"Analyzing file: {script_path}"), use_color=True)
     process = subprocess.Popen(
-        ["pyre", script_path],
+        [python_cmd, "-m", "pyre", script_path],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         stdin=subprocess.PIPE,

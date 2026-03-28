@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import itertools
+import os
 import sys
 import time
+from pathlib import Path
 
 from .main import (
     input_nonempty,
@@ -38,17 +40,39 @@ def _format_schtasks_error(result):
     return msg
 
 
+def _build_task_command(script_path, extra_args=None, python_exe=None):
+    target = Path(os.path.expanduser(script_path))
+    suffix = target.suffix.lower()
+    args = [str(arg) for arg in (extra_args or [])]
+
+    if suffix == ".py":
+        interpreter = python_exe or sys.executable
+        parts = [f'"{interpreter}"', f'"{target}"']
+    else:
+        parts = [f'"{target}"']
+
+    parts.extend(f'"{arg}"' for arg in args)
+    return " ".join(parts)
+
+
 def _create_or_update_task(task_name):
-    script_path = input_nonempty(tr("请输入脚本绝对路径: ", "Absolute script path: "))
+    script_path = input_nonempty(tr("请输入脚本或可执行文件绝对路径: ", "Absolute script/executable path: "))
     if script_path is None:
         return None, None, None
-    python_exe = sys.executable
-    task_cmd = f'"{python_exe}" "{script_path}"'
+    script_path = os.path.expanduser(script_path)
+    task_cmd = _build_task_command(script_path)
+    python_exe = sys.executable if Path(script_path).suffix.lower() == ".py" else None
 
-    print_warn(
-        tr(f"将使用 Python: {python_exe}", f"Using Python: {python_exe}"),
-        use_color=True,
-    )
+    if python_exe:
+        print_warn(
+            tr(f"将使用 Python: {python_exe}", f"Using Python: {python_exe}"),
+            use_color=True,
+        )
+    else:
+        print_warn(
+            tr(f"将直接运行: {script_path}", f"Will run directly: {script_path}"),
+            use_color=True,
+        )
 
     args = [
         "schtasks",
@@ -85,7 +109,8 @@ def _print_verification(task_name, script_path, python_exe):
     print_ok(tr("校验信息:", "Verification:"), use_color=True)
     safe_print(tr(f"- 任务名称: {short_name}", f"- Task name: {short_name}"))
     safe_print(tr(f"- 任务前缀: {TASK_PREFIX}", f"- Task prefix: {TASK_PREFIX}"))
-    safe_print(tr(f"- Python 路径: {python_exe}", f"- Python path: {python_exe}"))
+    if python_exe:
+        safe_print(tr(f"- Python 路径: {python_exe}", f"- Python path: {python_exe}"))
     safe_print(tr(f"- 脚本路径: {script_path}", f"- Script path: {script_path}"))
     safe_print(tr("- 触发条件: ONLOGON", "- Trigger: ONLOGON"))
     safe_print(tr("- 权限级别: LIMITED", "- Run level: LIMITED"))

@@ -1,6 +1,7 @@
 import os
 import platform
 import sys
+from pathlib import Path
 
 from . import linux, windows
 
@@ -9,11 +10,26 @@ def _normalize_path(path_value):
     return os.path.expanduser(path_value)
 
 
-def set_autostart(name, script_path, overwrite=True, script_type=None, sudo_password=None):
+def _build_windows_task_command(target_path, args=None, python_exe=None):
+    target = Path(_normalize_path(target_path))
+    suffix = target.suffix.lower()
+    extra_args = [str(arg) for arg in (args or [])]
+
+    if suffix == ".py":
+        interpreter = python_exe or sys.executable
+        parts = [f'"{interpreter}"', f'"{target}"']
+    else:
+        parts = [f'"{target}"']
+
+    parts.extend(f'"{arg}"' for arg in extra_args)
+    return " ".join(parts)
+
+
+def set_autostart(name, script_path, overwrite=True, script_type=None, sudo_password=None, args=None):
     """Create or update an autostart entry for the current OS."""
     system = platform.system().lower()
     if system == "windows":
-        return _set_autostart_windows(name, script_path, overwrite)
+        return _set_autostart_windows(name, script_path, overwrite, args=args)
     if system == "linux":
         return _set_autostart_linux(name, script_path, overwrite, script_type, sudo_password)
     raise RuntimeError(f"Unsupported OS: {system}")
@@ -39,7 +55,7 @@ def list_autostart(keyword=None, sudo_password=None):
     raise RuntimeError(f"Unsupported OS: {system}")
 
 
-def _set_autostart_windows(name, script_path, overwrite):
+def _set_autostart_windows(name, script_path, overwrite, args=None):
     if not name:
         raise ValueError("name is required")
     if not script_path:
@@ -50,8 +66,7 @@ def _set_autostart_windows(name, script_path, overwrite):
         raise RuntimeError("Task already exists")
 
     script_path = _normalize_path(script_path)
-    python_exe = sys.executable
-    task_cmd = f'"{python_exe}" "{script_path}"'
+    task_cmd = _build_windows_task_command(script_path, args=args)
 
     args = [
         "schtasks",
@@ -91,7 +106,7 @@ def _extract_task_name(block):
         if line_strip.startswith("任务名:") or line_strip.lower().startswith("taskname:"):
             _, value = line.split(":", 1)
             value = value.strip()
-            if value.startswith("\"):
+            if value.startswith("\\"):
                 value = value[1:]
             return windows._denormalize_task_name(value)
     return None
@@ -108,9 +123,7 @@ def _list_autostart_windows(keyword):
     output = windows._filter_tasks_by_keyword(output, keyword)
 
     names = []
-    for block in output.split("
-
-"):
+    for block in output.split("\n\n"):
         block = block.strip()
         if not block:
             continue
